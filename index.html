@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="logo">Password Generator</div>
+    <p class="error" style="visibility: hidden;opacity: 0;">Error Message</p>
+    <h1>
+        <div>
+            <input type="text" placeholder="Your Password Goes Here" class="generated" readonly><span
+                class="tooltip">Click on the password to copy</span>
+        </div>
+    </h1>
+    <div class="container">
+        <div class="input-control">
+            <label for="passLen">Password Length</label>
+            <input type="number" placeholder="Password Lenght" id="passLen" min="6" max="128" value="6">
+        </div>
+        <div class="input-control">
+            <label for="loweralph">Include Lowercase Letters</label>
+            <input type="checkbox" name="letters" id="loweralph" data-input="generateRandomLower" checked>
+        </div>
+        <div class="input-control">
+            <label for="upperalph">Include Uppercase Letters</label>
+            <input type="checkbox" name="letters" id="upperalph" data-input="generateRandomUpper" checked>
+        </div>
+        <div class="input-control">
+            <label for="num">Include Numbers</label>
+            <input type="checkbox" name="numbers" id="num" data-input="generateRandomNumber">
+        </div>
+        <div class="input-control">
+            <label for="char">Include Symbols</label>
+            <input type="checkbox" name="characters" id="char" data-input="generateRandomCharacter">
+        </div>
+        <div class="input-control">
+            <label for="repeatedChar">Exclude repeated characters</label>
+            <input type="checkbox" name="excludeRepeated" id="repeatedChar">
+        </div>
+        <input type="button" value="Generate" id="generate">
+    </div>
+
+    <div class="password-rules">
+        <p>To prevent your passwords from being hacked by social engineering, brute force or dictionary attack method
+            and protect your sensitive information online, you should notice that:</p>
+        <ol>
+            <li>Do not use the same password on multiple accounts.</li>
+            <li>The password should contain at least 15 characters, it should consist of both numbers, letters and
+                special symbols.</li>
+            <li>Do not use the names of your families, friends or pets.</li>
+            <li>Do not use postcodes, house numbers, phone numbers, birthdates, ID card numbers, social security
+                numbers, etc.</li>
+            <li>Do not use the most commonly used English words.</li>
+            <li>You should not let your browser or FTP client programs to save your passwords any password saved in the
+                browser can be revealed with a simple click using a script.</li>
+            <li>Do not login important accounts with a public computer or a machine of other guys.</li>
+            <li>Do not login important accounts with HTTP or FTP connections because, the username and password in the
+                message of a HTTP or FTP connection can be captured easily with a network protocol analyzer like
+                wireshark, which means that the password can be sniffed or hacked with very little effort. You should
+                use HTTPS or SFTP connections.</li>
+            <li>It is a good habit to change your passwords regularly.</li>
+            <li>It is recommended that you remember 3 to 5 main passwords, and store other passwords with a certain
+                software, for example, you can save them in a plain text file and encrypt it with 7-Zip or BitLocker, or
+                manage them with a password management software.</li>
+        </ol>
+    </div>
+
+    <script>
+        const passwordLength = document.getElementById('passLen');
+        const upperAlphabet = document.getElementById('upperalph');
+        const lowerAlphabet = document.getElementById('loweralph');
+        const number = document.getElementById('num');
+        const character = document.getElementById('char');
+        const generateButton = document.getElementById('generate');
+        const repeatedChar = document.getElementById('repeatedChar');
+        const passwordDisplay = document.querySelector('h1 div input');
+        const errorMessage = document.querySelector('.error');
+        const tooltip = document.querySelector('.tooltip');
+        const chars = ['+', '#', '$', '%'];
+
+        const generatingArray = {
+            generateRandomUpper: generateRandomUpper,
+            generateRandomLower: generateRandomLower,
+            generateRandomNumber: generateRandomNumber,
+            generateRandomCharacter: generateRandomCharacter
+        };
+        const allCombinations = [upperAlphabet, lowerAlphabet, number, character];
+
+        generateButton.addEventListener('click', function () {
+            let password = '';
+            let calculateLength = 0;
+
+            ///////////////////////////////////////
+            // Code for filtering in the checked checkboxes
+            const selectedCombination = allCombinations.filter((item) => {
+                if (item.checked) {
+                    return item;
+                }
+            });
+
+            console.log(selectedCombination.length, selectedCombination);
+
+            //////////////////////////////////////
+            //// Code for checking if no chekbox is checked
+            if (!selectedCombination.length) {
+                errorMessage.style.visibility = 'visible';
+                errorMessage.style.opacity = 1;
+                return errorMessage.innerHTML = 'Select at least one character type';
+            }
+
+            ////////////////////////////////////////////
+            /// Code for checking if the password length is empty
+            if (!passwordLength.value || passwordLength.value < 6) {
+                errorMessage.style.visibility = 'visible';
+                errorMessage.style.opacity = 1;
+                return errorMessage.innerHTML = 'Input password length, 6 and above';
+            }
+
+            /////////////////////////////////////////////////////
+            // Code for checking if the repeated character button is checked and 
+            // the password length is not greater than sum of the total character checked
+            if (repeatedChar.checked) {
+                for (let i = 0; i < selectedCombination.length; i++) {
+                    if (selectedCombination[i] == upperAlphabet || selectedCombination[i] == lowerAlphabet) {
+                        calculateLength += 26;
+                    } else if (selectedCombination[i] == number) {
+                        calculateLength += 10;
+                    }
+                    else {
+                        calculateLength += chars.length;
+                    }
+                }
+
+                if (passwordLength.value > calculateLength) {
+                    errorMessage.style.visibility = 'visible';
+                    errorMessage.style.opacity = 1;
+                    return errorMessage.innerHTML = 'only password of length ' + calculateLength + ' can be generated based on the boxes you checked.';
+                }
+            }
+
+            errorMessage.style.visibility = 'hidden';
+            errorMessage.style.opacity = 0;
+
+            ////////////////////////////////
+            /// Generating the password
+            for (let i = 0; i < passwordLength.value; i++) {
+                const rand = Math.floor(Math.random() * (selectedCombination.length));
+
+                let selected = selectedCombination[rand].dataset.input;
+
+                let finalPass = generatingArray[selected]();
+
+                if (repeatedChar.checked && password.includes(finalPass)) {
+                    password = password.replace(finalPass, finalPass);
+                    i = i - 1;
+                } else {
+                    password += finalPass;
+                }
+            }
+
+            tooltip.innerHTML = 'click password to copy';
+
+            passwordDisplay.value = password;
+        });
+
+        passwordDisplay.addEventListener('click', function () {
+            if (!this.value) {
+                return;
+            }
+
+            this.select();
+
+            navigator.clipboard.writeText(this.value);
+
+            tooltip.innerHTML = 'copied';
+        });
+
+
+        function generateRandomUpper() {
+            let x = (Math.floor(Math.random() * 26) + 65);
+            return String.fromCharCode(x);
+        }
+
+        function generateRandomLower() {
+            let x = (Math.floor(Math.random() * 26) + 97);
+            return String.fromCharCode(x);
+        }
+
+        function generateRandomNumber() {
+            let x = (Math.floor(Math.random() * 10) + 48);
+            return String.fromCharCode(x);
+        }
+
+        function generateRandomCharacter() {
+            let x = (Math.floor(Math.random() * chars.length));
+            return chars[x];
+        }
+
+    </script>
+</body>
+
+</html>
